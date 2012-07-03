@@ -306,8 +306,10 @@ function processRequest(req, res, next) {
     var baseHostUrl = baseHostInfo[0],
         baseHostPort = (baseHostInfo.length > 1) ? baseHostInfo[1] : "";
 
+	var timeStamp = Math.round(new Date().getTime()/1000);
+	params.timestamp = timeStamp;
     var paramString = query.stringify(params),
-        privateReqURL = apiConfig.protocol + '://' + apiConfig.baseURL + apiConfig.privatePath + methodURL + ((paramString.length > 0) ? '?' + paramString : ""),
+        privateReqURL = apiConfig.protocol + '://' + apiConfig.baseURL + apiConfig.privatePath + methodURL + '?' + paramString,
         options = {
             headers: {},
             protocol: apiConfig.protocol + ':',
@@ -492,6 +494,13 @@ function processRequest(req, res, next) {
                 var sig = crypto.createHash('sha256').update('' + apiKey + apiSecret + timeStamp + '').digest(apiConfig.signature.digest);
                 options.path += '&' + apiConfig.signature.sigParam + '=' + sig;
             }
+			else if (apiConfig.signature.type == 'signed_query_sha256') {
+				// Add signature parameters
+			    requestString = methodURL + '?' + paramString;
+				var sig = crypto.createHash('sha256').update(requestString + apiConfig.secret).digest(apiConfig.signature.digest);
+				options.path += '&' + apiConfig.keyParam + '=' + apiConfig.key;
+                options.path += '&' + apiConfig.signature.sigParam + '=' + sig;
+			}
         }
 
         // Setup headers, if any
